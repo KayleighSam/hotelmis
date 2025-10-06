@@ -9,6 +9,7 @@ import Footer from "./components/Footer";
 import { AuthProvider } from "./context/AuthContext";
 import { ApiFetchProvider } from "./context/ApiFetchContext";
 import { InventoryProvider } from "./context/InventoryContext";
+import { HotelProvider } from "./context/HotelContext";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import Inventory from "./pages/Inventory";
@@ -36,7 +37,9 @@ function App() {
     <ApiFetchProvider>
       <Router>
         <AuthProvider>
-        <InventoryProvider>
+          <InventoryProvider>
+            
+            <HotelProvider>
           <AppLayout>
             <Routes>
               {/* Public route */}
@@ -51,7 +54,7 @@ function App() {
             </AppLayout>
             
 
-
+            </HotelProvider>
             </InventoryProvider>
         </AuthProvider>
       </Router>

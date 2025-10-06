@@ -9,4 +9,11 @@ router.register(r'bookings', BookingViewSet, basename='bookings')
 
 urlpatterns = [
     path('', include(router.urls)),
+
+    # 📅 Custom calendar endpoint for a room
+    path(
+        'public/rooms/<int:pk>/calendar/',
+        PublicRoomViewSet.as_view({'get': 'calendar'}),
+        name='room-calendar'
+    ),
 ]
