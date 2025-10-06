@@ -1,0 +1,13 @@
+src/
+ ├─ pages/
+ │   ├─ Login.jsx
+ │   ├─ AdminDashboard.jsx
+ │   ├─ Inventory.jsx
+ │   ├─ Stock.jsx
+ │   └─ POS.jsx
+ ├─ context/
+ │   └─ AuthContext.jsx
+ ├─ components/
+ │   ├─ Navbar.jsx
+ │   └─ Footer.jsx
+ └─ AppRoutes.jsx

@@ -1,0 +1,13 @@
+project_root/
+│
+├─ config/               # your main config (settings.py, urls.py, wsgi/asgi.py)
+│   ├─ __init__.py
+│   ├─ settings.py
+│   ├─ urls.py
+│   ├─ wsgi.py
+│   ├─ asgi.py
+│
+├─ account/              # user management app
+├─ inventory/            # new app you’ll create
+├─ sales/                # new app you’ll create
+└─ manage.py
