@@ -25,21 +25,7 @@ function AdminNav() {
                 Dashboard
               </Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/inventory">
-                Inventory
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/stock">
-                Stock
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/pos">
-                POS
-              </Link>
-            </li>
+           
             <li className="nav-item">
               <Link className="nav-link" to="/">
                 Logout

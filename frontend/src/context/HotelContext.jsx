@@ -10,12 +10,12 @@ export const HotelProvider = ({ children }) => {
 
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [calendar, setCalendar] = useState({}); // 🗓️ { roomId: [bookedDates] }
+  const [calendar, setCalendar] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // ---------------------------
-  // 🏨 Fetch Public Rooms (All, booked or not)
+  // 🏨 Fetch all public rooms
   // ---------------------------
   const fetchPublicRooms = async () => {
     setLoading(true);
@@ -33,7 +33,7 @@ export const HotelProvider = ({ children }) => {
   };
 
   // ---------------------------
-  // 📅 Fetch Room Calendar (Booked Dates)
+  // 📅 Fetch calendar for a specific room
   // ---------------------------
   const fetchRoomCalendar = async (roomId) => {
     try {
@@ -52,100 +52,61 @@ export const HotelProvider = ({ children }) => {
   };
 
   // ---------------------------
-  // 🛠️ Fetch All Rooms (Admin)
+  // 🧾 Create a new booking (Public)
   // ---------------------------
-  const fetchAllRooms = async () => {
+  const createBooking = async ({
+    room,
+    client_name,
+    client_email,
+    check_in,
+    check_out,
+    amount_paid,
+  }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${baseURL}/hotel/admin/rooms/`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Failed to fetch all rooms");
-      const data = await res.json();
-      setRooms(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const payload = {
+        room, // backend expects "room", not "room_id"
+        client_name,
+        client_email,
+        check_in,
+        check_out,
+        amount_paid,
+      };
 
-  // ---------------------------
-  // ➕ Add Room (Admin)
-  // ---------------------------
-  const addRoom = async (formData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${baseURL}/hotel/admin/rooms/`, {
+      const res = await fetch(`${baseURL}/hotel/bookings/`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to add room");
-      setRooms((prev) => [...prev, data]);
-      return data;
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // ---------------------------
-  // ✏️ Update Room (Admin)
-  // ---------------------------
-  const updateRoom = async (roomId, formData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${baseURL}/hotel/admin/rooms/${roomId}/`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to update room");
-
-      setRooms((prev) => prev.map((r) => (r.id === roomId ? data : r)));
-      return data;
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ---------------------------
-  // ❌ Delete Room (Admin)
-  // ---------------------------
-  const deleteRoom = async (roomId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${baseURL}/hotel/admin/rooms/${roomId}/`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (res.ok) {
-        setRooms((prev) => prev.filter((r) => r.id !== roomId));
-      } else {
-        throw new Error("Failed to delete room");
+      if (!res.ok) {
+        const msg =
+          data.error ||
+          data.detail ||
+          "Booking failed. Please check your details and try again.";
+        throw new Error(msg);
       }
+
+      // Success 🎉
+      setBookings((prev) => [data.booking, ...prev]);
+      await fetchRoomCalendar(payload.room); // refresh booked days
+      return data.booking;
     } catch (err) {
       setError(err.message);
+      console.error("Booking creation error:", err.message);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   // ---------------------------
-  // 📅 Fetch All Bookings (Admin)
+  // 📋 Fetch all bookings (Admin only)
   // ---------------------------
   const fetchBookings = async () => {
     setLoading(true);
@@ -165,25 +126,84 @@ export const HotelProvider = ({ children }) => {
   };
 
   // ---------------------------
-  // 🧾 Create Booking (Public)
+  // 🛠️ Admin Room Management
   // ---------------------------
-  const createBooking = async (data) => {
+  const fetchAllRooms = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await post("/hotel/bookings/", data);
+      const res = await fetch(`${baseURL}/hotel/admin/rooms/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch all rooms");
+      const data = await res.json();
+      setRooms(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if (res.error) throw new Error(res.error);
-      if (
-        res.message &&
-        res.message.includes("❌ These dates are already booked")
-      ) {
-        throw new Error("These dates are already booked. Please choose others.");
-      }
+  const addRoom = async (formData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${baseURL}/hotel/admin/rooms/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
 
-      setBookings((prev) => [res.booking, ...prev]);
-      await fetchRoomCalendar(res.booking.room.id); // 🗓️ Refresh calendar
-      return res.booking;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add room");
+
+      setRooms((prev) => [...prev, data]);
+      return data;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateRoom = async (roomId, formData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${baseURL}/hotel/admin/rooms/${roomId}/`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update room");
+
+      setRooms((prev) => prev.map((r) => (r.id === roomId ? data : r)));
+      return data;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteRoom = async (roomId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${baseURL}/hotel/admin/rooms/${roomId}/`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete room");
+
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      return data.message;
     } catch (err) {
       setError(err.message);
       return null;
@@ -193,7 +213,7 @@ export const HotelProvider = ({ children }) => {
   };
 
   // ---------------------------
-  // ♻️ Update Booking (Admin)
+  // ✏️ Update or Delete Booking (Admin)
   // ---------------------------
   const updateBooking = async (bookingId, data) => {
     setLoading(true);
@@ -207,9 +227,8 @@ export const HotelProvider = ({ children }) => {
         },
         body: JSON.stringify(data),
       });
-
       const updated = await res.json();
-      if (!res.ok) throw new Error(updated.detail || "Failed to update booking");
+      if (!res.ok) throw new Error(updated.error || "Failed to update booking");
 
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? updated : b))
@@ -217,14 +236,12 @@ export const HotelProvider = ({ children }) => {
       return updated;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------------------
-  // 🗑️ Delete Booking (Admin)
-  // ---------------------------
   const deleteBooking = async (bookingId) => {
     setLoading(true);
     setError(null);
@@ -234,20 +251,21 @@ export const HotelProvider = ({ children }) => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
 
-      if (res.ok) {
-        setBookings((prev) => prev.filter((b) => b.id !== bookingId));
-      } else {
-        throw new Error("Failed to delete booking");
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete booking");
+
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      return data.message;
     } catch (err) {
       setError(err.message);
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   // ---------------------------
-  // 🌐 Auto-fetch public rooms on mount
+  // 🌐 Fetch rooms automatically on mount
   // ---------------------------
   useEffect(() => {
     fetchPublicRooms();
@@ -262,7 +280,7 @@ export const HotelProvider = ({ children }) => {
         loading,
         error,
         fetchPublicRooms,
-        fetchRoomCalendar, // ✅ new helper
+        fetchRoomCalendar,
         fetchAllRooms,
         addRoom,
         updateRoom,

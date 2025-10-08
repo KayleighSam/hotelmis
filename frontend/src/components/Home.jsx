@@ -8,10 +8,12 @@ import {
   Badge,
   Modal,
   Form,
+  Alert,
 } from "react-bootstrap";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "../App.css";
 
 function Home() {
   const { rooms, fetchPublicRooms, loading, error } = useContext(HotelContext);
@@ -19,7 +21,9 @@ function Home() {
   const [showDetails, setShowDetails] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [bookedDates, setBookedDates] = useState([]);
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [selectedRange, setSelectedRange] = useState([]);
+  const [viewMode, setViewMode] = useState("all"); // 🔘 all | booked | available
   const [formData, setFormData] = useState({
     client_name: "",
     client_email: "",
@@ -27,15 +31,19 @@ function Home() {
     check_out: "",
   });
   const [amountPaid, setAmountPaid] = useState(0);
+  const [priceBreakdown, setPriceBreakdown] = useState("");
+  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     fetchPublicRooms();
   }, []);
 
-  // 🧭 Fetch bookings for selected room
+  // 🧭 Fetch booked ranges for selected room
   const handleShowCalendar = async (room) => {
     setSelectedRoom(room);
     setShowCalendar(true);
+    setServerError("");
+    setViewMode("all");
 
     try {
       const response = await fetch(
@@ -44,51 +52,67 @@ function Home() {
       if (!response.ok) throw new Error("Failed to fetch booking dates");
       const data = await response.json();
 
-      const booked = [];
-      data.forEach((booking) => {
-        const start = new Date(booking.check_in);
-        const end = new Date(booking.check_out);
-        for (
-          let date = new Date(start);
-          date <= end;
-          date.setDate(date.getDate() + 1)
-        ) {
-          booked.push(new Date(date));
-        }
-      });
-      setBookedDates(booked);
+      const ranges = data.map((b) => ({
+        start: new Date(b.check_in),
+        end: new Date(b.check_out),
+      }));
+      setBookedRanges(ranges);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 🖼️ View Room Details
+  // 🖼️ Room details modal
   const handleViewDetails = (room) => {
     setSelectedRoom(room);
     setShowDetails(true);
   };
 
-  // 📅 Style booked days in calendar
+  // 🟥 Calendar tile styling
   const tileClassName = ({ date }) => {
-    const isBooked = bookedDates.some(
-      (d) => d.toDateString() === date.toDateString()
+    const isBooked = bookedRanges.some(
+      (r) => date >= r.start && date <= r.end
     );
-    return isBooked ? "bg-danger text-white rounded-circle" : "";
+
+    if (viewMode === "booked" && !isBooked) return "hidden-tile";
+    if (viewMode === "available" && isBooked) return "hidden-tile";
+
+    return isBooked ? "booked-tile" : "available";
   };
 
-  // 📅 Clicking available day opens booking form
-  const handleDayClick = (date) => {
-    const isBooked = bookedDates.some(
-      (d) => d.toDateString() === date.toDateString()
+  // 🚫 Disable booked days only if viewing all/available
+  const tileDisabled = ({ date }) =>
+    viewMode !== "booked" &&
+    bookedRanges.some((r) => date >= r.start && date <= r.end);
+
+  // 🏷️ Overlay content
+  const tileContent = ({ date }) => {
+    const isBooked = bookedRanges.some(
+      (r) => date >= r.start && date <= r.end
     );
-    if (!isBooked) {
-      const formatted = date.toISOString().split("T")[0];
-      setFormData((prev) => ({
-        ...prev,
-        check_in: formatted,
-        check_out: formatted,
-      }));
-      setShowBooking(true);
+    if (viewMode === "booked" && !isBooked) return null;
+    if (viewMode === "available" && isBooked) return null;
+
+    return isBooked ? (
+      <div className="booked-overlay">Booked</div>
+    ) : (
+      <div className="available-overlay"></div>
+    );
+  };
+
+  // 📅 Handle date range selection
+  const handleDateChange = (range) => {
+    if (Array.isArray(range)) {
+      setSelectedRange(range);
+      const [start, end] = range;
+      if (start && end) {
+        setFormData((prev) => ({
+          ...prev,
+          check_in: start.toISOString().split("T")[0],
+          check_out: end.toISOString().split("T")[0],
+        }));
+        setShowBooking(true);
+      }
     }
   };
 
@@ -97,17 +121,31 @@ function Home() {
     if (formData.check_in && formData.check_out && selectedRoom) {
       const checkIn = new Date(formData.check_in);
       const checkOut = new Date(formData.check_out);
-      let totalDays = (checkOut - checkIn) / (1000 * 60 * 60 * 24);
-      if (totalDays < 1) totalDays = 1;
+      const totalDays = Math.max(
+        1,
+        (checkOut - checkIn) / (1000 * 60 * 60 * 24)
+      );
       const total = totalDays * selectedRoom.price_per_day;
       setAmountPaid(total);
+      setPriceBreakdown(
+        `${totalDays} day(s) × Ksh ${selectedRoom.price_per_day} = Ksh ${total}`
+      );
     }
   }, [formData.check_in, formData.check_out, selectedRoom]);
 
-  // 📤 Submit booking
+  // ✅ Submit booking
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
+    setServerError("");
+
     if (!selectedRoom) return alert("No room selected");
+    if (!formData.check_in || !formData.check_out)
+      return alert("Please select check-in and check-out dates.");
+
+    const checkIn = new Date(formData.check_in);
+    const checkOut = new Date(formData.check_out);
+    if (checkOut <= checkIn)
+      return alert("❌ Check-out date must be after check-in date.");
 
     const payload = {
       room: selectedRoom.id,
@@ -125,40 +163,34 @@ function Home() {
         body: JSON.stringify(payload),
       });
 
+      const resData = await res.json();
       if (!res.ok) {
-        const errData = await res.json();
-        console.error("❌ Backend error:", errData);
-
-        // 🧠 Detect if room unavailable (already booked)
-        if (
-          errData.error?.includes("booked") ||
-          errData.message?.includes("booked") ||
-          errData.detail?.includes("booked")
-        ) {
-          alert("❌ This room is already booked for the selected dates.");
-        } else {
-          alert("❌ This room is already booked for the selected dates.");
-        }
+        console.error("❌ Backend error:", resData);
+        setServerError(
+          resData.error ||
+            resData.non_field_errors?.[0] ||
+            "❌ Could not complete booking."
+        );
         return;
       }
 
       alert("✅ Booking successful!");
       setShowBooking(false);
       setShowCalendar(false);
+      setSelectedRange([]);
       setFormData({
         client_name: "",
         client_email: "",
         check_in: "",
         check_out: "",
       });
-      fetchPublicRooms(); // refresh rooms
+      fetchPublicRooms();
     } catch (err) {
       console.error(err);
-      alert("⚠️ Could not complete booking. Please check your connection.");
+      setServerError("⚠️ Network error — please try again later.");
     }
   };
 
-  // 🌀 Loading & Error states
   if (loading)
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -173,22 +205,21 @@ function Home() {
       </div>
     );
 
-  // 🏠 Main UI
   return (
     <div className="container mt-4">
-      {/* 🏨 Hero */}
+      {/* 🏨 Header */}
       <div className="text-center mb-4">
         <h1 className="fw-bold text-primary">Welcome to Our Hotel</h1>
         <p className="text-muted">
-          Discover comfort, luxury, and style — choose your perfect stay below.
+          Discover comfort and elegance — choose your perfect stay below.
         </p>
       </div>
 
-      {/* 🖼️ Top Carousel */}
+      {/* 🖼️ Featured Carousel */}
       {rooms.length > 0 && (
         <Carousel className="shadow-lg mb-5 rounded-4 overflow-hidden">
-          {rooms.slice(0, 4).map((room, index) => (
-            <Carousel.Item key={index}>
+          {rooms.slice(0, 4).map((room, i) => (
+            <Carousel.Item key={i}>
               <img
                 className="d-block w-100"
                 src={
@@ -208,7 +239,7 @@ function Home() {
         </Carousel>
       )}
 
-      {/* 🏠 Room List */}
+      {/* 🏠 Room Cards */}
       <div className="row g-4">
         {rooms.map((room) => (
           <div key={room.id} className="col-md-4 col-lg-3">
@@ -261,53 +292,6 @@ function Home() {
         ))}
       </div>
 
-      {/* 🖼️ Room Detail Modal */}
-      <Modal
-        show={showDetails}
-        onHide={() => setShowDetails(false)}
-        size="lg"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>{selectedRoom?.name}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Carousel>
-            {[selectedRoom?.image1, selectedRoom?.image2, selectedRoom?.image3]
-              .filter(Boolean)
-              .map((img, i) => (
-                <Carousel.Item key={i}>
-                  <img
-                    src={
-                      img?.startsWith("http") ? img : `http://127.0.0.1:8000${img}`
-                    }
-                    alt={`${selectedRoom?.name}-${i}`}
-                    className="d-block w-100"
-                    style={{ height: "400px", objectFit: "cover" }}
-                  />
-                </Carousel.Item>
-              ))}
-          </Carousel>
-          <div className="mt-3">
-            <p>{selectedRoom?.description}</p>
-            <h5 className="text-primary">
-              Ksh {Number(selectedRoom?.price_per_day).toLocaleString()} / day
-            </h5>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetails(false)}>
-            Close
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => handleShowCalendar(selectedRoom)}
-          >
-            View Calendar
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
       {/* 📅 Calendar Modal */}
       <Modal
         show={showCalendar}
@@ -321,29 +305,46 @@ function Home() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="d-flex justify-content-center">
-            <Calendar
-              onClickDay={handleDayClick}
-              tileClassName={tileClassName}
-              prev2Label={null}
-              next2Label={null}
-            />
+          <div className="d-flex justify-content-center gap-2 mb-3">
+            <Button
+              variant={viewMode === "all" ? "primary" : "outline-primary"}
+              onClick={() => setViewMode("all")}
+            >
+              All Dates
+            </Button>
+            <Button
+              variant={viewMode === "available" ? "success" : "outline-success"}
+              onClick={() => setViewMode("available")}
+            >
+              Available Dates
+            </Button>
+            <Button
+              variant={viewMode === "booked" ? "danger" : "outline-danger"}
+              onClick={() => setViewMode("booked")}
+            >
+              Booked Dates
+            </Button>
           </div>
-          <div className="text-center mt-3">
-            <Badge bg="danger" className="me-2">
-              Booked
-            </Badge>
-            <Badge bg="success">Available</Badge>
-          </div>
+          <Calendar
+            selectRange
+            onChange={handleDateChange}
+            tileClassName={tileClassName}
+            tileContent={tileContent}
+            tileDisabled={tileDisabled}
+            prev2Label={null}
+            next2Label={null}
+            className="large-calendar"
+          />
         </Modal.Body>
       </Modal>
 
       {/* 🧾 Booking Modal */}
       <Modal show={showBooking} onHide={() => setShowBooking(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Book Room</Modal.Title>
+          <Modal.Title>Confirm Booking</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {serverError && <Alert variant="danger">{serverError}</Alert>}
           <Form onSubmit={handleBookingSubmit}>
             <Form.Group className="mb-3">
               <Form.Label>Full Name</Form.Label>
@@ -356,7 +357,6 @@ function Home() {
                 required
               />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Email</Form.Label>
               <Form.Control
@@ -371,27 +371,18 @@ function Home() {
 
             <Form.Group className="mb-3">
               <Form.Label>Check-in</Form.Label>
-              <Form.Control
-                type="date"
-                value={formData.check_in}
-                onChange={(e) =>
-                  setFormData({ ...formData, check_in: e.target.value })
-                }
-                required
-              />
+              <Form.Control type="date" value={formData.check_in} readOnly />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Check-out</Form.Label>
-              <Form.Control
-                type="date"
-                value={formData.check_out}
-                onChange={(e) =>
-                  setFormData({ ...formData, check_out: e.target.value })
-                }
-                required
-              />
+              <Form.Control type="date" value={formData.check_out} readOnly />
             </Form.Group>
+
+            {priceBreakdown && (
+              <Alert variant="info">
+                <strong>Price Breakdown:</strong> {priceBreakdown}
+              </Alert>
+            )}
 
             <Form.Group className="mb-3">
               <Form.Label>Total Amount (Ksh)</Form.Label>
@@ -402,6 +393,57 @@ function Home() {
               Confirm Booking
             </Button>
           </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* 🏠 View More Modal */}
+      <Modal
+        show={showDetails}
+        onHide={() => setShowDetails(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{selectedRoom?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedRoom && (
+            <>
+              <Carousel
+                interval={3000}
+                className="mb-3 rounded-3 overflow-hidden"
+              >
+                {[selectedRoom.image1, selectedRoom.image2, selectedRoom.image3]
+                  .filter(Boolean)
+                  .map((img, idx) => (
+                    <Carousel.Item key={idx}>
+                      <img
+                        className="d-block w-100"
+                        src={
+                          img?.startsWith("http")
+                            ? img
+                            : `http://127.0.0.1:8000${img}`
+                        }
+                        alt={`Slide ${idx}`}
+                        style={{ height: "350px", objectFit: "cover" }}
+                      />
+                    </Carousel.Item>
+                  ))}
+              </Carousel>
+              <p className="text-muted">{selectedRoom.description}</p>
+              <h5 className="fw-bold text-primary">
+                Price: Ksh {selectedRoom.price_per_day.toLocaleString()} / day
+              </h5>
+              <div className="d-grid mt-3">
+                <Button
+                  variant="outline-primary"
+                  onClick={() => handleShowCalendar(selectedRoom)}
+                >
+                  View Calendar
+                </Button>
+              </div>
+            </>
+          )}
         </Modal.Body>
       </Modal>
     </div>

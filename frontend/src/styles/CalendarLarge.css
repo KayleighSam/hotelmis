@@ -1,0 +1,53 @@
+/* Make the whole calendar fill the modal width */
+.big-calendar {
+    width: 100% !important;
+    max-width: 100%;
+    border: none;
+    background: #fff;
+    border-radius: 12px;
+    font-size: 1.4rem;
+  }
+  
+  /* Enlarge the individual day cells massively */
+  .big-calendar .react-calendar__tile {
+    height: 160px !important; /* Increase to make day cells huge */
+    width: 14.28%;
+    font-size: 1.3rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+  }
+  
+  /* Hover animation */
+  .big-calendar .react-calendar__tile:hover {
+    background-color: #f0f8ff;
+    transform: scale(1.04);
+  }
+  
+  /* Bigger weekday headers */
+  .big-calendar .react-calendar__month-view__weekdays {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  
+  /* Booked & available custom color */
+  .booked-day {
+    background-color: #dc3545 !important;
+    color: #fff !important;
+    border-radius: 10px;
+  }
+  
+  .available-day {
+    background-color: #198754 !important;
+    color: #fff !important;
+    border-radius: 10px;
+  }
+  
+  /* Wrapper keeps calendar centered and wide */
+  .calendar-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  

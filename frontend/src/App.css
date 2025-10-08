@@ -40,3 +40,304 @@
 .read-the-docs {
   color: #888;
 }
+
+.large-calendar {
+  width: 100% !important;
+  border: none;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+/* Large day boxes */
+.large-calendar .react-calendar__tile {
+  width: 14.28%;
+  height: 130px !important;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-align: center;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Booked vs Available */
+.booked {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+.available {
+  background-color: #198754 !important;
+  color: white !important;
+}
+
+/* Hover effect */
+.large-calendar .react-calendar__tile:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+.large-calendar {
+  width: 100% !important;
+  max-width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+/* Big Month Header */
+.large-calendar .react-calendar__navigation {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.large-calendar .react-calendar__navigation button {
+  font-size: 1.5rem;
+  margin: 0 10px;
+}
+
+/* Big day tiles */
+.large-calendar .react-calendar__tile {
+  width: 14.28%;
+  height: 130px !important;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Colors */
+.booked {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.available {
+  background-color: #198754 !important;
+  color: #fff !important;
+}
+
+/* Weekdays header */
+.large-calendar .react-calendar__month-view__weekdays {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.large-calendar {
+  width: 100% !important;
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 1.4rem;
+}
+
+/* Bigger day boxes */
+.large-calendar .react-calendar__tile {
+  height: 130px !important;
+  font-size: 1.2rem;
+  font-weight: 500;
+  border-radius: 10px;
+}
+
+/* Booked = red */
+.booked {
+  background-color: #dc3545 !important;
+  color: white !important;
+}
+
+/* Available = green */
+.available {
+  background-color: #198754 !important;
+  color: white !important;
+}
+
+.large-calendar .react-calendar__month-view__weekdays {
+  font-size: 1.2rem;
+  font-weight: 700;
+}.large-calendar {
+  width: 100% !important;
+  max-width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 1rem;
+  background: #fff;
+}
+
+/* 📅 Large day boxes */
+.large-calendar .react-calendar__tile {
+  width: 14.28%;
+  height: 140px !important;
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 14px;
+  transition: all 0.2s ease-in-out;
+}
+
+/* 🟥 Booked dates */
+.booked {
+  background-color: #dc3545 !important;
+  color: white !important;
+  font-weight: 700;
+  border-radius: 14px;
+}
+
+/* 🟩 Available dates */
+.available {
+  background-color: #198754 !important;
+  color: white !important;
+  font-weight: 700;
+  border-radius: 14px;
+}
+
+/* 📅 Hover effect */
+.large-calendar .react-calendar__tile:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 📆 Navigation styling */
+.large-calendar .react-calendar__navigation {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+.large-calendar .react-calendar__navigation button {
+  font-size: 1.5rem;
+  margin: 0 10px;
+}
+
+/* 🗓️ Weekdays header */
+.large-calendar .react-calendar__month-view__weekdays {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.booked {
+  background-color: #dc3545 !important;
+  color: white !important;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.available {
+  background-color: #198754 !important;
+  color: white !important;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.hidden-date {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.large-calendar .react-calendar__tile:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+/* Make booked dates show as continuous red blocks */
+.booked-tile {
+  background-color: rgba(255, 0, 0, 0.8) !important;
+  color: white !important;
+  border-radius: 6px;
+  position: relative;
+}
+
+/* Add the small "Booked" text overlay */
+.booked-overlay {
+  position: absolute;
+  bottom: 3px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Adjust calendar tile height for better visuals */
+.react-calendar__tile {
+  height: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Smooth hover for available tiles */
+.react-calendar__tile:enabled:hover {
+  background-color: #e6f7ff !important;
+  transition: 0.2s;
+}
+.large-calendar {
+  width: 100% !important;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  padding: 1rem;
+}
+
+/* Big calendar tiles */
+.react-calendar__tile {
+  height: 80px !important;
+  font-size: 1.1rem;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+  border-radius: 8px;
+}
+
+/* 🟥 Continuous booked range */
+.booked-tile {
+  background-color: rgba(220, 53, 69, 0.9) !important;
+  color: white !important;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+/* 🟩 Available */
+.available {
+  background-color: #198754 !important;
+  color: #fff !important;
+  border-radius: 8px;
+}
+
+/* 🏷️ Booked text overlay */
+.booked-overlay {
+  position: absolute;
+  bottom: 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 2px black;
+}
+
+/* Hover */
+.react-calendar__tile:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Month navigation */
+.react-calendar__navigation {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.react-calendar__month-view__weekdays {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+}
+.table {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.card {
+  transition: all 0.3s ease-in-out;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.1);
+}

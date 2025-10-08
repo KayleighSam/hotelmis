@@ -1,159 +1,236 @@
-import React, { useState, useContext } from "react";
-import AdminNav from "./AdminNav"; // your AdminNav component lives in pages
+import React, { useState, useContext, useEffect } from "react";
+import { Button, Alert, Spinner } from "react-bootstrap";
+import AdminNav from "./AdminNav";
+import { HotelContext } from "../context/HotelContext";
 import { AuthContext } from "../context/AuthContext";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+
+import OverviewCards from "./OverviewCards";
+import RoomTable from "./RoomTable";
+import BookingTable from "./BookingTable";
+import RoomModal from "./RoomModal";
+import BookingModal from "./BookingModal";
 
 const AdminDashboard = () => {
-  const { register, loading, error } = useContext(AuthContext);
-  const [showModal, setShowModal] = useState(false);
+  const { user } = useContext(AuthContext);
+  const {
+    rooms,
+    bookings,
+    fetchAllRooms,
+    fetchBookings,
+    addRoom,
+    deleteRoom,
+    deleteBooking,
+    updateRoom,
+    updateBooking,
+    loading,
+    error,
+  } = useContext(HotelContext);
 
-  const [formData, setFormData] = useState({
-    username: "",
-    first_name: "",
-    second_name: "",
-    email: "",
-    phone_number: "",
-    role: "user",
-    password: "",
-    profile_image: null,
-  });
+  const [view, setView] = useState("overview"); // overview | rooms | bookings
+  const [localError, setLocalError] = useState("");
+  const [roomModalShow, setRoomModalShow] = useState(false);
+  const [bookingModalShow, setBookingModalShow] = useState(false);
+  const [roomEditMode, setRoomEditMode] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
-  const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (files) {
-      setFormData({ ...formData, [name]: files[0] });
+  useEffect(() => {
+    fetchAllRooms();
+    fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Export helper
+  const handleExportPDF = (type) => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text(
+      `Hotel ${type === "rooms" ? "Rooms" : "Bookings"} Report`,
+      14,
+      22
+    );
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+    if (type === "rooms") {
+      const tableColumn = [
+        "ID",
+        "Name",
+        "Price/Day",
+        "Available",
+        "Description",
+      ];
+      const tableRows = rooms.map((r) => [
+        r.id,
+        r.name,
+        `Ksh ${r.price_per_day}`,
+        r.available ? "Yes" : "No",
+        r.description,
+      ]);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+      });
     } else {
-      setFormData({ ...formData, [name]: value });
+      const tableColumn = [
+        "ID",
+        "Client Name",
+        "Email",
+        "Room",
+        "Check-in",
+        "Check-out",
+        "Amount Paid",
+      ];
+      const tableRows = bookings.map((b) => [
+        b.id,
+        b.client_name,
+        b.client_email,
+        b.room_name || `Room #${b.room}`,
+        b.check_in,
+        b.check_out,
+        `Ksh ${b.amount_paid}`,
+      ]);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 40,
+      });
     }
+
+    doc.save(`${type}_report_${Date.now()}.pdf`);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const data = new FormData();
-    Object.entries(formData).forEach(([key, val]) => {
-      data.append(key, val);
-    });
-    await register(data);
-    setShowModal(false);
+  // Room modal handlers (open for add OR edit)
+  const openAddRoomModal = () => {
+    setSelectedRoom(null);
+    setRoomEditMode(false);
+    setRoomModalShow(true);
+  };
+
+  const openEditRoomModal = (room) => {
+    setSelectedRoom(room);
+    setRoomEditMode(true);
+    setRoomModalShow(true);
+  };
+
+  const handleRoomSaved = async () => {
+    // refresh list after add/edit
+    await fetchAllRooms();
+    setRoomModalShow(false);
+  };
+
+  // Booking modal handlers
+  const openEditBookingModal = (booking) => {
+    setSelectedBooking(booking);
+    setBookingModalShow(true);
+  };
+
+  const handleBookingUpdated = async () => {
+    await fetchBookings();
+    setBookingModalShow(false);
+  };
+
+  // Delete helpers
+  const handleDeleteRoom = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this room?")) return;
+    await deleteRoom(id);
+    await fetchAllRooms();
+  };
+
+  const handleDeleteBooking = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this booking?")) return;
+    await deleteBooking(id);
+    await fetchBookings();
   };
 
   return (
     <div>
       <AdminNav />
 
-      <div className="container mt-5 pt-5">
-        <div className="text-center mb-4">
-          <h2 className="fw-bold">Admin Dashboard</h2>
-          <p className="text-muted">Welcome to the Ores Electron Admin Panel</p>
+      <div className="container mt-5 pt-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="fw-bold text-primary">Admin Dashboard</h2>
+          <div>
+            <Button
+              variant={view === "overview" ? "primary" : "outline-primary"}
+              className="me-2"
+              onClick={() => setView("overview")}
+            >
+              Overview
+            </Button>
+            <Button
+              variant={view === "rooms" ? "success" : "outline-success"}
+              className="me-2"
+              onClick={() => setView("rooms")}
+            >
+              Rooms
+            </Button>
+            <Button
+              variant={view === "bookings" ? "warning" : "outline-warning"}
+              onClick={() => setView("bookings")}
+            >
+              Bookings
+            </Button>
+          </div>
         </div>
 
-        <div className="row g-4">
-          {/* Inventory */}
-          <div className="col-md-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body text-center">
-                <h5 className="card-title">Inventory</h5>
-                <p className="card-text">Manage and view all inventory items.</p>
-                <a href="/inventory" className="btn btn-primary w-100">
-                  Go to Inventory
-                </a>
-              </div>
-            </div>
+        {error && <Alert variant="danger">{error}</Alert>}
+        {localError && <Alert variant="danger">{localError}</Alert>}
+
+        {loading ? (
+          <div className="d-flex justify-content-center align-items-center mt-5">
+            <Spinner animation="border" variant="primary" />
           </div>
-          {/* Stock */}
-          <div className="col-md-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body text-center">
-                <h5 className="card-title">Stock</h5>
-                <p className="card-text">Track and update stock levels.</p>
-                <a href="/stock" className="btn btn-success w-100">
-                  Go to Stock
-                </a>
-              </div>
-            </div>
-          </div>
-          {/* POS */}
-          <div className="col-md-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body text-center">
-                <h5 className="card-title">POS</h5>
-                <p className="card-text">Handle sales and point of service.</p>
-                <a href="/pos" className="btn btn-warning w-100">
-                  Go to POS
-                </a>
-              </div>
-            </div>
-          </div>
-          {/* Users */}
-          <div className="col-md-3">
-            <div className="card h-100 shadow-sm border-0">
-              <div className="card-body text-center">
-                <h5 className="card-title">Users</h5>
-                <p className="card-text">View or add new users.</p>
-                <button className="btn btn-info w-100" onClick={() => setShowModal(true)}>
-                  Manage Users
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <>
+            {view === "overview" && (
+              <OverviewCards rooms={rooms} bookings={bookings} user={user} />
+            )}
+
+            {view === "rooms" && (
+              <RoomTable
+                rooms={rooms}
+                onEdit={openEditRoomModal}
+                onDelete={handleDeleteRoom}
+                onAdd={openAddRoomModal}
+                onExport={() => handleExportPDF("rooms")}
+                onRefresh={fetchAllRooms}
+              />
+            )}
+
+            {view === "bookings" && (
+              <BookingTable
+                bookings={bookings}
+                onEdit={openEditBookingModal}
+                onDelete={handleDeleteBooking}
+                onExport={() => handleExportPDF("bookings")}
+                onRefresh={fetchBookings}
+              />
+            )}
+          </>
+        )}
       </div>
 
-      {/* Modal */}
-      <div
-        className={`modal fade ${showModal ? "show d-block" : ""}`}
-        tabIndex="-1"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      >
-        <div className="modal-dialog modal-lg">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Add User</h5>
-              <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-            </div>
-            <form onSubmit={handleSubmit} encType="multipart/form-data">
-              <div className="modal-body">
-                {error && <div className="alert alert-danger">{error}</div>}
-                <div className="row g-3">
-                  {["username", "first_name", "second_name", "email", "phone_number"].map((field) => (
-                    <div className="col-md-6" key={field}>
-                      <label className="form-label">{field.replace("_", " ")}</label>
-                      <input
-                        type={field === "email" ? "email" : "text"}
-                        name={field}
-                        className="form-control"
-                        onChange={handleChange}
-                      />
-                    </div>
-                  ))}
-                  <div className="col-md-6">
-                    <label className="form-label">Role</label>
-                    <select name="role" className="form-select" onChange={handleChange}>
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Password</label>
-                    <input type="password" name="password" className="form-control" onChange={handleChange} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label">Profile Image</label>
-                    <input type="file" name="profile_image" className="form-control" onChange={handleChange} />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Close
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? "Saving..." : "Add User"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+      <RoomModal
+        show={roomModalShow}
+        onHide={() => setRoomModalShow(false)}
+        editMode={roomEditMode}
+        room={selectedRoom}
+        addRoom={addRoom}
+        updateRoom={updateRoom}
+        onSaved={handleRoomSaved}
+      />
+
+      <BookingModal
+        show={bookingModalShow}
+        onHide={() => setBookingModalShow(false)}
+        booking={selectedBooking}
+        updateBooking={updateBooking}
+        onUpdated={handleBookingUpdated}
+      />
     </div>
   );
 };
