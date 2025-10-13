@@ -215,7 +215,7 @@ function Home() {
 
       {/* 🏨 Header */}
       <div className="text-center mb-4">
-        <h1 className="fw-bold text-primary">Welcome to Our Hotel</h1>
+        <h1 className="fw-bold text-primary">Welcome to Milele Hotel</h1>
         <p className="text-muted">
           Discover comfort and elegance — choose your perfect stay below.
         </p>
@@ -268,9 +268,9 @@ function Home() {
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <Card.Title className="fs-5">{room.name}</Card.Title>
-                  <Badge bg={room.available ? "success" : "danger"}>
+                  {/* <Badge bg={room.available ? "success" : "danger"}>
                     {room.available ? "Available" : "Booked"}
-                  </Badge>
+                  </Badge> */}
                 </div>
                 <Card.Text className="text-muted small">
                   {room.description?.slice(0, 80)}...

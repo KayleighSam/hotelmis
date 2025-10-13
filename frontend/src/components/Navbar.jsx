@@ -15,7 +15,7 @@ const Navbar = () => {
     <>
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
         <div className="container-fluid">
-          <a className="navbar-brand" href="/">Hotel MIS</a>
+          <a className="navbar-brand" href="/">Milele Hotel MIS</a>
           <button
             className="navbar-toggler"
             type="button"
