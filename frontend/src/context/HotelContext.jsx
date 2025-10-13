@@ -5,12 +5,13 @@ import { AuthContext } from "./AuthContext";
 export const HotelContext = createContext();
 
 export const HotelProvider = ({ children }) => {
-  const { baseURL, post } = useContext(ApiFetchContext);
+  const { baseURL } = useContext(ApiFetchContext);
   const { accessToken } = useContext(AuthContext);
 
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [calendar, setCalendar] = useState({});
+  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -66,7 +67,7 @@ export const HotelProvider = ({ children }) => {
     setError(null);
     try {
       const payload = {
-        room, // backend expects "room", not "room_id"
+        room,
         client_name,
         client_email,
         check_in,
@@ -92,9 +93,8 @@ export const HotelProvider = ({ children }) => {
         throw new Error(msg);
       }
 
-      // Success 🎉
       setBookings((prev) => [data.booking, ...prev]);
-      await fetchRoomCalendar(payload.room); // refresh booked days
+      await fetchRoomCalendar(payload.room);
       return data.booking;
     } catch (err) {
       setError(err.message);
@@ -120,6 +120,35 @@ export const HotelProvider = ({ children }) => {
       setBookings(data);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------------------------
+  // 🔍 Search Bookings by Email
+  // ---------------------------
+  const searchBookingByEmail = async (email) => {
+    if (!email) {
+      setSearchResults([]);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${baseURL}/hotel/bookings/search_by_email/?email=${encodeURIComponent(email)}`
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No bookings found for this email");
+
+      setSearchResults(data);
+      return data;
+    } catch (err) {
+      setError(err.message);
+      setSearchResults([]);
+      console.error("Search booking error:", err.message);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -276,6 +305,7 @@ export const HotelProvider = ({ children }) => {
       value={{
         rooms,
         bookings,
+        searchResults,
         calendar,
         loading,
         error,
@@ -289,6 +319,7 @@ export const HotelProvider = ({ children }) => {
         createBooking,
         updateBooking,
         deleteBooking,
+        searchBookingByEmail,
       }}
     >
       {children}

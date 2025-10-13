@@ -14,16 +14,19 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
+import SearchBooking from "../components/SerchBooking.jsx"; // ✅ fixed import name
 
 function Home() {
   const { rooms, fetchPublicRooms, loading, error } = useContext(HotelContext);
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [bookedRanges, setBookedRanges] = useState([]);
   const [selectedRange, setSelectedRange] = useState([]);
-  const [viewMode, setViewMode] = useState("all"); // 🔘 all | booked | available
+  const [viewMode, setViewMode] = useState("all"); // all | booked | available
+
   const [formData, setFormData] = useState({
     client_name: "",
     client_email: "",
@@ -34,11 +37,12 @@ function Home() {
   const [priceBreakdown, setPriceBreakdown] = useState("");
   const [serverError, setServerError] = useState("");
 
+  // 🔹 Fetch rooms when page loads
   useEffect(() => {
     fetchPublicRooms();
   }, []);
 
-  // 🧭 Fetch booked ranges for selected room
+  // 🔹 Show room booking calendar
   const handleShowCalendar = async (room) => {
     setSelectedRoom(room);
     setShowCalendar(true);
@@ -62,37 +66,32 @@ function Home() {
     }
   };
 
-  // 🖼️ Room details modal
+  // 🔹 Show room details modal
   const handleViewDetails = (room) => {
     setSelectedRoom(room);
     setShowDetails(true);
   };
 
-  // 🟥 Calendar tile styling
+  // 🔹 Calendar tile visuals
   const tileClassName = ({ date }) => {
     const isBooked = bookedRanges.some(
       (r) => date >= r.start && date <= r.end
     );
-
     if (viewMode === "booked" && !isBooked) return "hidden-tile";
     if (viewMode === "available" && isBooked) return "hidden-tile";
-
     return isBooked ? "booked-tile" : "available";
   };
 
-  // 🚫 Disable booked days only if viewing all/available
   const tileDisabled = ({ date }) =>
     viewMode !== "booked" &&
     bookedRanges.some((r) => date >= r.start && date <= r.end);
 
-  // 🏷️ Overlay content
   const tileContent = ({ date }) => {
     const isBooked = bookedRanges.some(
       (r) => date >= r.start && date <= r.end
     );
     if (viewMode === "booked" && !isBooked) return null;
     if (viewMode === "available" && isBooked) return null;
-
     return isBooked ? (
       <div className="booked-overlay">Booked</div>
     ) : (
@@ -100,7 +99,7 @@ function Home() {
     );
   };
 
-  // 📅 Handle date range selection
+  // 🔹 When user selects a date range
   const handleDateChange = (range) => {
     if (Array.isArray(range)) {
       setSelectedRange(range);
@@ -116,7 +115,7 @@ function Home() {
     }
   };
 
-  // 🧮 Auto-calculate total cost
+  // 🔹 Calculate total price dynamically
   useEffect(() => {
     if (formData.check_in && formData.check_out && selectedRoom) {
       const checkIn = new Date(formData.check_in);
@@ -133,7 +132,7 @@ function Home() {
     }
   }, [formData.check_in, formData.check_out, selectedRoom]);
 
-  // ✅ Submit booking
+  // 🔹 Submit booking
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
@@ -162,8 +161,8 @@ function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const resData = await res.json();
+
       if (!res.ok) {
         console.error("❌ Backend error:", resData);
         setServerError(
@@ -191,6 +190,7 @@ function Home() {
     }
   };
 
+  // 🔹 Loading & Error handling
   if (loading)
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
@@ -205,8 +205,14 @@ function Home() {
       </div>
     );
 
+  // ✅ Correctly render SearchBooking component at the top
   return (
     <div className="container mt-4">
+      {/* 🔍 Booking Search Section */}
+      <div className="mb-5">
+        <SearchBooking />
+      </div>
+
       {/* 🏨 Header */}
       <div className="text-center mb-4">
         <h1 className="fw-bold text-primary">Welcome to Our Hotel</h1>
@@ -368,7 +374,6 @@ function Home() {
                 required
               />
             </Form.Group>
-
             <Form.Group className="mb-3">
               <Form.Label>Check-in</Form.Label>
               <Form.Control type="date" value={formData.check_in} readOnly />
@@ -377,18 +382,15 @@ function Home() {
               <Form.Label>Check-out</Form.Label>
               <Form.Control type="date" value={formData.check_out} readOnly />
             </Form.Group>
-
             {priceBreakdown && (
               <Alert variant="info">
                 <strong>Price Breakdown:</strong> {priceBreakdown}
               </Alert>
             )}
-
             <Form.Group className="mb-3">
               <Form.Label>Total Amount (Ksh)</Form.Label>
               <Form.Control type="number" value={amountPaid} readOnly />
             </Form.Group>
-
             <Button type="submit" variant="primary" className="w-100">
               Confirm Booking
             </Button>

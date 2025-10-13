@@ -160,3 +160,17 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),  # <-- This enables Authorization: Bearer <token>
 }
+
+# =========================================================
+# 📧 Email Configuration (settings.py)
+# =========================================================
+# -----------------------
+# Email configuration
+# -----------------------
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_USE_TLS = True
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = "1samempire@gmail.com"
+# EMAIL_HOST_PASSWORD = "yrtu csbj ttrv xqya"
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
