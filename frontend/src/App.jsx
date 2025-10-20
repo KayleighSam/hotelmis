@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
+import About from "./components/About";
 import Footer from "./components/Footer";
 
 import { AuthProvider } from "./context/AuthContext";
@@ -43,13 +44,12 @@ function App() {
           <AppLayout>
             <Routes>
               {/* Public route */}
-              <Route path="/" element={<Home />} />
+                  <Route path="/" element={<Home />} />
+                  <Route path="about" element={ <About/>}/>
 
               {/* Admin routes */}
               <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/stock" element={<Stock />} />
-              <Route path="/pos" element={<POS />} />
+    
             </Routes>
             </AppLayout>
             
