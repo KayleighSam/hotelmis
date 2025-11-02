@@ -3,18 +3,6 @@ import { Modal, Form, Button } from "react-bootstrap";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-/**
- * RoomModal
- *
- * Props:
- * - show (bool)
- * - onHide (fn)
- * - editMode (bool)
- * - room (object|null)
- * - addRoom (fn) -> async expects FormData
- * - updateRoom (fn) -> async expects (roomId, FormData)
- * - onSaved (fn) -> called after successful save
- */
 const RoomModal = ({
   show,
   onHide,
@@ -29,13 +17,16 @@ const RoomModal = ({
     description: "",
     price_per_day: "",
     available: true,
+    adults: 1,
+    children: 0,
+    board_type: "half_board",
     image1: null,
     image2: null,
     image3: null,
   });
+
   const [saving, setSaving] = useState(false);
 
-  // ✅ Populate modal when editing
   useEffect(() => {
     if (editMode && room) {
       setFormData({
@@ -43,6 +34,9 @@ const RoomModal = ({
         description: room.description || "",
         price_per_day: room.price_per_day || "",
         available: room.available ?? true,
+        adults: room.adults || 1,
+        children: room.children || 0,
+        board_type: room.board_type || "half_board",
         image1: null,
         image2: null,
         image3: null,
@@ -53,6 +47,9 @@ const RoomModal = ({
         description: "",
         price_per_day: "",
         available: true,
+        adults: 1,
+        children: 0,
+        board_type: "half_board",
         image1: null,
         image2: null,
         image3: null,
@@ -60,7 +57,6 @@ const RoomModal = ({
     }
   }, [editMode, room, show]);
 
-  // ✅ Handle input changes
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
     if (files) {
@@ -72,7 +68,6 @@ const RoomModal = ({
     }
   };
 
-  // ✅ Handle save / update
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -103,7 +98,6 @@ const RoomModal = ({
 
   return (
     <>
-      {/* ✅ Toastify Container */}
       <ToastContainer position="top-right" autoClose={3000} />
 
       <Modal show={show} onHide={onHide} centered>
@@ -113,7 +107,6 @@ const RoomModal = ({
 
         <Form onSubmit={handleSubmit}>
           <Modal.Body>
-            {/* Room Name */}
             <Form.Group className="mb-3">
               <Form.Label>Room Name</Form.Label>
               <Form.Control
@@ -125,7 +118,6 @@ const RoomModal = ({
               />
             </Form.Group>
 
-            {/* Description */}
             <Form.Group className="mb-3">
               <Form.Label>Description</Form.Label>
               <Form.Control
@@ -138,7 +130,6 @@ const RoomModal = ({
               />
             </Form.Group>
 
-            {/* Price per Day */}
             <Form.Group className="mb-3">
               <Form.Label>Price per Day (Ksh)</Form.Label>
               <Form.Control
@@ -150,7 +141,45 @@ const RoomModal = ({
               />
             </Form.Group>
 
-            {/* Availability */}
+            {/* Adults
+            <Form.Group className="mb-3">
+              <Form.Label>Adults</Form.Label>
+              <Form.Control
+                type="number"
+                name="adults"
+                min="1"
+                value={formData.adults}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group> */}
+
+            {/* Children */}
+            {/* <Form.Group className="mb-3">
+              <Form.Label>Children</Form.Label>
+              <Form.Control
+                type="number"
+                name="children"
+                min="0"
+                value={formData.children}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group> */}
+
+            {/* Board Type */}
+            {/* <Form.Group className="mb-3">
+              <Form.Label>Board Type</Form.Label>
+              <Form.Select
+                name="board_type"
+                value={formData.board_type}
+                onChange={handleChange}
+              >
+                <option value="half_board">Half Board</option>
+                <option value="full_board">Full Board</option>
+              </Form.Select>
+            </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Check
                 type="checkbox"
@@ -159,23 +188,19 @@ const RoomModal = ({
                 checked={formData.available}
                 onChange={handleChange}
               />
-            </Form.Group>
+            </Form.Group> */}
 
             {/* Images */}
-            <Form.Group className="mb-3">
-              <Form.Label>Image 1</Form.Label>
-              <Form.Control type="file" name="image1" onChange={handleChange} />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Image 2</Form.Label>
-              <Form.Control type="file" name="image2" onChange={handleChange} />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Image 3</Form.Label>
-              <Form.Control type="file" name="image3" onChange={handleChange} />
-            </Form.Group>
+            {[1, 2, 3].map((i) => (
+              <Form.Group key={i} className="mb-3">
+                <Form.Label>{`Image ${i}`}</Form.Label>
+                <Form.Control
+                  type="file"
+                  name={`image${i}`}
+                  onChange={handleChange}
+                />
+              </Form.Group>
+            ))}
           </Modal.Body>
 
           <Modal.Footer>

@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import date
+from decimal import Decimal
 
 
 class Room(models.Model):
@@ -17,11 +18,19 @@ class Room(models.Model):
 
 
 class Booking(models.Model):
+    MEAL_CHOICES = [
+        ('HB', 'Half Board (Breakfast + One Meal)'),
+        ('FB', 'Full Board (Breakfast, Lunch & Dinner)'),
+    ]
+
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="bookings")
     client_name = models.CharField(max_length=100)
     client_email = models.EmailField()
     check_in = models.DateField()
     check_out = models.DateField()
+    adults = models.PositiveIntegerField(default=1)
+    children = models.PositiveIntegerField(default=0)
+    meal_plan = models.CharField(max_length=2, choices=MEAL_CHOICES, default='HB')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -41,23 +50,39 @@ class Booking(models.Model):
             raise ValidationError("❌ This room is already booked for part of that period.")
 
     def save(self, *args, **kwargs):
-        # ✅ Convert date strings if needed
+        # ✅ Convert date strings if passed as strings
         if isinstance(self.check_in, str):
             self.check_in = date.fromisoformat(self.check_in)
         if isinstance(self.check_out, str):
             self.check_out = date.fromisoformat(self.check_out)
 
-        # Validate before saving
+        # Run validation
         self.clean()
 
-        # ✅ Compute total price
+        # ✅ Calculate number of days
         days = (self.check_out - self.check_in).days
         if days < 1:
             days = 1
-        self.total_amount = days * self.room.price_per_day
 
-        # ✅ Prevent underpayment
-        if self.amount_paid != self.total_amount:
+        # ✅ Compute total base price
+        base_price = self.room.price_per_day * Decimal(days)
+
+        # ✅ Use Decimal for multipliers
+        if self.meal_plan == 'HB':
+            meal_multiplier = Decimal('1.2')  # +20% for half board
+        elif self.meal_plan == 'FB':
+            meal_multiplier = Decimal('1.4')  # +40% for full board
+        else:
+            meal_multiplier = Decimal('1.0')
+
+        # ✅ Calculate total guests (children = half rate)
+        total_guests = Decimal(self.adults) + (Decimal(self.children) * Decimal('0.5'))
+
+        # ✅ Final total
+        self.total_amount = base_price * total_guests * meal_multiplier
+
+        # ✅ Ensure amount_paid matches expected total
+        if self.amount_paid is None or self.amount_paid != self.total_amount:
             raise ValidationError(
                 f"❌ Payment mismatch: Expected {self.total_amount}, got {self.amount_paid}"
             )
@@ -79,4 +104,4 @@ class Booking(models.Model):
         return "Paid" if self.amount_paid == self.total_amount else "Underpaid"
 
     def __str__(self):
-        return f"Booking for {self.client_name} - {self.room.name}"
+        return f"{self.client_name} - {self.room.name} ({self.check_in} → {self.check_out})"

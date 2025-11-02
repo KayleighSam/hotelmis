@@ -32,6 +32,9 @@ function About() {
     client_email: "",
     check_in: "",
     check_out: "",
+    adults: 1,
+    children: 0,
+    meal_plan: "HB", // Half Board by default
   });
   const [amountPaid, setAmountPaid] = useState(0);
   const [priceBreakdown, setPriceBreakdown] = useState("");
@@ -72,21 +75,42 @@ function About() {
     setShowDetails(true);
   };
 
-  // 🔹 Calendar tile visuals
+  // 🔹 Calendar tile visuals with past date prevention
   const tileClassName = ({ date }) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = date < today;
+    
     const isBooked = bookedRanges.some(
       (r) => date >= r.start && date <= r.end
     );
+    
+    if (isPast) return "past-date-tile";
     if (viewMode === "booked" && !isBooked) return "hidden-tile";
     if (viewMode === "available" && isBooked) return "hidden-tile";
     return isBooked ? "booked-tile" : "available";
   };
 
-  const tileDisabled = ({ date }) =>
-    viewMode !== "booked" &&
-    bookedRanges.some((r) => date >= r.start && date <= r.end);
+  const tileDisabled = ({ date }) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = date < today;
+    
+    // Disable past dates always
+    if (isPast) return true;
+    
+    // Disable booked dates only when not in "booked" view mode
+    return viewMode !== "booked" &&
+      bookedRanges.some((r) => date >= r.start && date <= r.end);
+  };
 
   const tileContent = ({ date }) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = date < today;
+    
+    if (isPast) return null;
+    
     const isBooked = bookedRanges.some(
       (r) => date >= r.start && date <= r.end
     );
@@ -115,22 +139,39 @@ function About() {
     }
   };
 
-  // 🔹 Calculate total price dynamically
+  // 🔹 Calculate total price dynamically based on backend logic
   useEffect(() => {
     if (formData.check_in && formData.check_out && selectedRoom) {
       const checkIn = new Date(formData.check_in);
       const checkOut = new Date(formData.check_out);
-      const totalDays = Math.max(
-        1,
-        (checkOut - checkIn) / (1000 * 60 * 60 * 24)
-      );
-      const total = totalDays * selectedRoom.price_per_day;
-      setAmountPaid(total);
+      const days = Math.max(1, (checkOut - checkIn) / (1000 * 60 * 60 * 24));
+      
+      // Base price calculation
+      const basePrice = days * selectedRoom.price_per_day;
+      
+      // Meal plan multiplier
+      let mealMultiplier = 1.0;
+      let mealPlanText = "";
+      if (formData.meal_plan === "HB") {
+        mealMultiplier = 1.2; // +20% for Half Board
+        mealPlanText = " (Half Board)";
+      } else if (formData.meal_plan === "FB") {
+        mealMultiplier = 1.4; // +40% for Full Board
+        mealPlanText = " (Full Board)";
+      }
+      
+      // Guest calculation (children count as 0.5)
+      const totalGuests = formData.adults + (formData.children * 0.5);
+      
+      // Total calculation
+      const total = basePrice * totalGuests * mealMultiplier;
+      
+      setAmountPaid(parseFloat(total.toFixed(2)));
       setPriceBreakdown(
-        `${totalDays} day(s) × Ksh ${selectedRoom.price_per_day} = Ksh ${total}`
+        `${days} day(s) × Ksh ${selectedRoom.price_per_day} × ${totalGuests} guests${mealPlanText} = Ksh ${total.toFixed(2)}`
       );
     }
-  }, [formData.check_in, formData.check_out, selectedRoom]);
+  }, [formData.check_in, formData.check_out, formData.adults, formData.children, formData.meal_plan, selectedRoom]);
 
   // 🔹 Submit booking
   const handleBookingSubmit = async (e) => {
@@ -152,6 +193,10 @@ function About() {
       client_email: formData.client_email,
       check_in: formData.check_in,
       check_out: formData.check_out,
+      adults: parseInt(formData.adults),
+      children: parseInt(formData.children),
+      meal_plan: formData.meal_plan,
+      total_amount: amountPaid,
       amount_paid: amountPaid,
     };
 
@@ -182,6 +227,9 @@ function About() {
         client_email: "",
         check_in: "",
         check_out: "",
+        adults: 1,
+        children: 0,
+        meal_plan: "HB",
       });
       fetchPublicRooms();
     } catch (err) {
@@ -337,6 +385,13 @@ function About() {
             tileClassName={tileClassName}
             tileContent={tileContent}
             tileDisabled={tileDisabled}
+            minDate={new Date()} // ✅ Prevent selecting past dates
+            showNavigation={true} // ✅ Ensure navigation is visible
+            navigationLabel={({ date }) => (
+              <span style={{ fontSize: '1.1rem', fontWeight: '600' }}>
+                {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </span>
+            )} // ✅ Show month and year prominently
             prev2Label={null}
             next2Label={null}
             className="large-calendar"
@@ -382,6 +437,49 @@ function About() {
               <Form.Label>Check-out</Form.Label>
               <Form.Control type="date" value={formData.check_out} readOnly />
             </Form.Group>
+            
+            {/* 🔹 Adults Field */}
+            <Form.Group className="mb-3">
+              <Form.Label>Number of Adults</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                value={formData.adults}
+                onChange={(e) =>
+                  setFormData({ ...formData, adults: parseInt(e.target.value) || 1 })
+                }
+                required
+              />
+            </Form.Group>
+
+            {/* 🔹 Children Field */}
+            <Form.Group className="mb-3">
+              <Form.Label>Number of Children (50% rate)</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                value={formData.children}
+                onChange={(e) =>
+                  setFormData({ ...formData, children: parseInt(e.target.value) || 0 })
+                }
+              />
+            </Form.Group>
+
+            {/* 🔹 Meal Plan Field */}
+            <Form.Group className="mb-3">
+              <Form.Label>Meal Plan</Form.Label>
+              <Form.Select
+                value={formData.meal_plan}
+                onChange={(e) =>
+                  setFormData({ ...formData, meal_plan: e.target.value })
+                }
+                required
+              >
+                <option value="HB">Half Board (Breakfast + One Meal) - +20%</option>
+                <option value="FB">Full Board (Breakfast, Lunch & Dinner) - +40%</option>
+              </Form.Select>
+            </Form.Group>
+
             {priceBreakdown && (
               <Alert variant="info">
                 <strong>Price Breakdown:</strong> {priceBreakdown}

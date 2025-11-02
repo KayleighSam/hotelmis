@@ -62,6 +62,9 @@ export const HotelProvider = ({ children }) => {
     check_in,
     check_out,
     amount_paid,
+    adults,
+    children,
+    board_type, // ✅ NEW (Half Board / Full Board)
   }) => {
     setLoading(true);
     setError(null);
@@ -73,6 +76,9 @@ export const HotelProvider = ({ children }) => {
         check_in,
         check_out,
         amount_paid,
+        adults,
+        children,
+        board_type,
       };
 
       const res = await fetch(`${baseURL}/hotel/bookings/`, {
