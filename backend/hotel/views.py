@@ -254,7 +254,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         # =========================================================
         # ✉️ Send Beautiful HTML Email (includes new fields)
         # =========================================================
-        subject = f"Booking Confirmation – {room.name} | Sam Hotel"
+        subject = f"Booking Confirmation – {room.name} | Milele Hotel"
         from_email = settings.DEFAULT_FROM_EMAIL
         recipient = [client_email]
 
@@ -263,12 +263,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         <body style="font-family: Arial, sans-serif; background-color: #f6f7fb; padding: 40px;">
             <div style="max-width: 640px; margin: auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 14px rgba(0,0,0,0.08);">
                 <div style="background: #ff6b00; color: white; text-align: center; padding: 22px;">
-                    <h2 style="margin: 0;">Sam Hotel</h2>
+                    <h2 style="margin: 0;">Milele Hotel</h2>
                     <p style="margin: 0; font-size: 14px;">Luxury & Comfort, Redefined</p>
                 </div>
                 <div style="padding: 28px;">
                     <h3 style="color: #333; margin-bottom: 6px;">Dear {client_name},</h3>
-                    <p style="margin-top:0;">Thank you for booking with <b>Sam Hotel</b>! We're thrilled to confirm your stay.</p>
+                    <p style="margin-top:0;">Thank you for booking with <b>Milele Hotel</b>! We're thrilled to confirm your stay.</p>
 
                     <div style="margin: 20px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 12px 0;">
                         <table width="100%" style="border-collapse: collapse; font-size: 14px;">
@@ -288,11 +288,11 @@ class BookingViewSet(viewsets.ModelViewSet):
                     <p>If you have any questions, feel free to reply to this email or contact our front desk.</p>
 
                     <div style="margin-top: 26px; text-align: center;">
-                        <a href="#" style="background-color: #ff6b00; color: white; padding: 10px 26px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Your Booking</a>
+                        <a href="http://localhost:5173/about" style="background-color: #ff6b00; color: white; padding: 10px 26px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Your Booking</a>
                     </div>
                 </div>
                 <div style="background: #333; color: white; text-align: center; padding: 14px; font-size: 12px;">
-                    © {date.today().year} Sam Hotel | All Rights Reserved
+                    © {date.today().year} Milele Hotel | All Rights Reserved
                 </div>
             </div>
         </body>
