@@ -26,6 +26,7 @@ class Booking(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="bookings")
     client_name = models.CharField(max_length=100)
     client_email = models.EmailField()
+    client_phone = models.CharField(max_length=20, blank=True, null=True)  # ✅ Phone number
     check_in = models.DateField()
     check_out = models.DateField()
     adults = models.PositiveIntegerField(default=1)
@@ -34,6 +35,7 @@ class Booking(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    mpesa_response = models.JSONField(blank=True, null=True)  # ✅ Mpesa STK response
 
     def clean(self):
         """❌ Prevent overlapping bookings for the same room."""
@@ -64,22 +66,22 @@ class Booking(models.Model):
         if days < 1:
             days = 1
 
-        # ✅ Compute total base price
+        # ✅ Compute base price
         base_price = self.room.price_per_day * Decimal(days)
 
         # ✅ Use Decimal for multipliers
         if self.meal_plan == 'HB':
-            meal_multiplier = Decimal('1.2')  # +20% for half board
+            meal_multiplier = Decimal('1.2')
         elif self.meal_plan == 'FB':
-            meal_multiplier = Decimal('1.4')  # +40% for full board
+            meal_multiplier = Decimal('1.4')
         else:
             meal_multiplier = Decimal('1.0')
 
-        # ✅ Calculate total guests (children = half rate)
+        # ✅ Calculate total guests (children = half)
         total_guests = Decimal(self.adults) + (Decimal(self.children) * Decimal('0.5'))
 
         # ✅ Final total
-        self.total_amount = base_price * total_guests * meal_multiplier
+        self.total_amount = (base_price * total_guests * meal_multiplier).quantize(Decimal('0.01'))
 
         # ✅ Ensure amount_paid matches expected total
         if self.amount_paid is None or self.amount_paid != self.total_amount:

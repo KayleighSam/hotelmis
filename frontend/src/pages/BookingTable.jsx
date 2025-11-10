@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Table, Button, Badge, Row, Col, Card, Form } from "react-bootstrap";
+import { Table, Button, Badge, Row, Col, Card, Form, Pagination, Modal } from "react-bootstrap";
 import {
   BarChart,
   Bar,
@@ -15,6 +15,10 @@ import {
 const BookingTable = ({ bookings = [], onEdit, onDelete, onExport, onRefresh }) => {
   const [selectedYear, setSelectedYear] = useState("All");
   const [selectedRoom, setSelectedRoom] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showMpesaModal, setShowMpesaModal] = useState(false);
+  const [selectedMpesaData, setSelectedMpesaData] = useState(null);
+  const itemsPerPage = 10;
 
   // 🧮 Extract years and rooms for dropdown filters
   const availableYears = useMemo(() => {
@@ -41,6 +45,17 @@ const BookingTable = ({ bookings = [], onEdit, onDelete, onExport, onRefresh }) 
       return matchYear && matchRoom;
     });
   }, [bookings, selectedYear, selectedRoom]);
+
+  // 📄 Pagination logic
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [selectedYear, selectedRoom]);
 
   // 📊 Count bookings per room
   const bookingsPerRoom = useMemo(() => {
@@ -98,8 +113,146 @@ const BookingTable = ({ bookings = [], onEdit, onDelete, onExport, onRefresh }) 
     0
   );
 
+  // Handle M-Pesa modal
+  const handleShowMpesa = (mpesaData) => {
+    setSelectedMpesaData(mpesaData);
+    setShowMpesaModal(true);
+  };
+
+  const handleCloseMpesa = () => {
+    setShowMpesaModal(false);
+    setSelectedMpesaData(null);
+  };
+
+  // Pagination component
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const items = [];
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage < maxPagesToShow - 1) {
+      startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
+      items.push(
+        <Pagination.First key="first" onClick={() => setCurrentPage(1)} />
+      );
+      items.push(
+        <Pagination.Prev
+          key="prev"
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+        />
+      );
+    }
+
+    // Page numbers
+    for (let page = startPage; page <= endPage; page++) {
+      items.push(
+        <Pagination.Item
+          key={page}
+          active={page === currentPage}
+          onClick={() => setCurrentPage(page)}
+        >
+          {page}
+        </Pagination.Item>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      items.push(
+        <Pagination.Next
+          key="next"
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+        />
+      );
+      items.push(
+        <Pagination.Last key="last" onClick={() => setCurrentPage(totalPages)} />
+      );
+    }
+
+    return (
+      <div className="d-flex justify-content-center align-items-center mt-4">
+        <Pagination className="mb-0">{items}</Pagination>
+        <span className="ms-3 text-muted">
+          Page {currentPage} of {totalPages} ({filteredBookings.length} total bookings)
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="mt-4">
+      <style>{`
+        .mpesa-badge {
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .mpesa-badge:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .mpesa-modal-content {
+          background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        }
+
+        .mpesa-data-card {
+          background: white;
+          border-radius: 12px;
+          padding: 15px;
+          margin-bottom: 15px;
+          border-left: 4px solid #0077B6;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .mpesa-data-label {
+          font-weight: 700;
+          color: #0077B6;
+          margin-bottom: 5px;
+        }
+
+        .mpesa-data-value {
+          color: #333;
+          word-break: break-word;
+        }
+
+        .pagination .page-item.active .page-link {
+          background-color: #FFB703;
+          border-color: #FFB703;
+          color: #000;
+          font-weight: 700;
+        }
+
+        .pagination .page-link {
+          color: #0077B6;
+          border-radius: 8px;
+          margin: 0 3px;
+          transition: all 0.3s ease;
+        }
+
+        .pagination .page-link:hover {
+          background-color: #FFB703;
+          border-color: #FFB703;
+          color: #000;
+          transform: translateY(-2px);
+        }
+
+        .table-hover tbody tr:hover {
+          background-color: rgba(255, 183, 3, 0.1);
+          transform: scale(1.01);
+          transition: all 0.3s ease;
+        }
+      `}</style>
+
       {/* === Header Section === */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="fw-bold text-dark">📘 Booking Dashboard</h4>
@@ -253,105 +406,150 @@ const BookingTable = ({ bookings = [], onEdit, onDelete, onExport, onRefresh }) 
 
       {/* === Booking Table === */}
       <h5 className="fw-bold text-dark mb-3">All Bookings</h5>
-      <Table bordered hover responsive className="shadow-sm rounded-4">
-        <thead className="table-warning text-center">
-          <tr>
-            <th>#</th>
-            <th>Client Name</th>
-            <th>Email</th>
-            <th>Room</th>
-            <th>Adults</th>
-            <th>Children</th>
-            <th>Meal Plan</th>
-            <th>Check-in</th>
-            <th>Check-out</th>
-            <th>Total Amount</th>
-            <th>Amount Paid</th>
-            <th>Payment Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-
-        <tbody className="align-middle text-center">
-          {filteredBookings.length === 0 ? (
+      <div className="table-responsive">
+        <Table bordered hover className="shadow-sm rounded-4">
+          <thead className="table-warning text-center">
             <tr>
-              <td colSpan="13" className="text-center text-muted py-4">
-                No bookings found 😴
-              </td>
+              <th>#</th>
+              <th>Client Name</th>
+              <th>Email</th>
+              <th>Room</th>
+              <th>Adults</th>
+              <th>Children</th>
+              <th>Meal Plan</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+              <th>Total Amount</th>
+              <th>Amount Paid</th>
+              <th>Payment Status</th>
+              <th>M-Pesa</th>
+              <th>Action</th>
             </tr>
-          ) : (
-            filteredBookings.map((b, i) => (
-              <tr key={b.id}>
-                <td>{i + 1}</td>
-                <td className="fw-semibold">{b.client_name}</td>
-                <td>{b.client_email}</td>
-                <td>{b.room_name || `Room #${b.room}`}</td>
-                <td>{b.adults || 0}</td>
-                <td>{b.children || 0}</td>
-                <td>
-                  <Badge
-                    bg={
-                      b.meal_plan === "Full Board"
-                        ? "success"
-                        : b.meal_plan === "Half Board"
-                        ? "warning"
-                        : "secondary"
-                    }
-                  >
-                    {b.meal_plan || "N/A"}
-                  </Badge>
-                </td>
-                <td>{b.check_in}</td>
-                <td>{b.check_out}</td>
-                <td>
-                  {b.total_amount
-                    ? `Ksh ${Number(b.total_amount).toLocaleString()}`
-                    : "—"}
-                </td>
-                <td>
-                  {b.amount_paid
-                    ? `Ksh ${Number(b.amount_paid).toLocaleString()}`
-                    : "—"}
-                </td>
-                <td>
-                  <Badge
-                    bg={
-                      b.amount_paid === b.total_amount
-                        ? "success"
-                        : !b.amount_paid
-                        ? "secondary"
-                        : "danger"
-                    }
-                  >
-                    {b.amount_paid === b.total_amount
-                      ? "Paid"
-                      : !b.amount_paid
-                      ? "Pending"
-                      : "Underpaid"}
-                  </Badge>
-                </td>
-                <td>
-                  <Button
-                    variant="outline-info"
-                    size="sm"
-                    className="me-2"
-                    onClick={() => onEdit(b)}
-                  >
-                    ✏️ Edit
-                  </Button>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => onDelete(b.id)}
-                  >
-                    🗑️ Delete
-                  </Button>
+          </thead>
+
+          <tbody className="align-middle text-center">
+            {paginatedBookings.length === 0 ? (
+              <tr>
+                <td colSpan="14" className="text-center text-muted py-4">
+                  No bookings found 😴
                 </td>
               </tr>
-            ))
+            ) : (
+              paginatedBookings.map((b, i) => (
+                <tr key={b.id}>
+                  <td>{startIndex + i + 1}</td>
+                  <td className="fw-semibold">{b.client_name}</td>
+                  <td>{b.client_email}</td>
+                  <td>{b.room_name || `Room #${b.room}`}</td>
+                  <td>{b.adults || 0}</td>
+                  <td>{b.children || 0}</td>
+                  <td>
+                    <Badge
+                      bg={
+                        b.meal_plan === "Full Board"
+                          ? "success"
+                          : b.meal_plan === "Half Board"
+                          ? "warning"
+                          : "secondary"
+                      }
+                    >
+                      {b.meal_plan || "N/A"}
+                    </Badge>
+                  </td>
+                  <td>{b.check_in}</td>
+                  <td>{b.check_out}</td>
+                  <td>
+                    {b.total_amount
+                      ? `Ksh ${Number(b.total_amount).toLocaleString()}`
+                      : "—"}
+                  </td>
+                  <td>
+                    {b.amount_paid
+                      ? `Ksh ${Number(b.amount_paid).toLocaleString()}`
+                      : "—"}
+                  </td>
+                  <td>
+                    <Badge
+                      bg={
+                        b.amount_paid === b.total_amount
+                          ? "success"
+                          : !b.amount_paid
+                          ? "secondary"
+                          : "danger"
+                      }
+                    >
+                      {b.amount_paid === b.total_amount
+                        ? "Paid"
+                        : !b.amount_paid
+                        ? "Pending"
+                        : "Underpaid"}
+                    </Badge>
+                  </td>
+                  <td>
+                    {b.mpesa_response ? (
+                      <Badge
+                        bg="info"
+                        className="mpesa-badge"
+                        onClick={() => handleShowMpesa(b.mpesa_response)}
+                      >
+                        📱 View
+                      </Badge>
+                    ) : (
+                      <Badge bg="secondary">N/A</Badge>
+                    )}
+                  </td>
+                  <td>
+                    <Button
+                      variant="outline-info"
+                      size="sm"
+                      className="me-2 mb-1"
+                      onClick={() => onEdit(b)}
+                    >
+                      ✏️ Edit
+                    </Button>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => onDelete(b.id)}
+                    >
+                      🗑️ Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </Table>
+      </div>
+
+      {/* === Pagination === */}
+      {renderPagination()}
+
+      {/* === M-Pesa Response Modal === */}
+      <Modal show={showMpesaModal} onHide={handleCloseMpesa} size="lg" centered>
+        <Modal.Header closeButton className="bg-info text-white">
+          <Modal.Title>📱 M-Pesa Transaction Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="mpesa-modal-content">
+          {selectedMpesaData && (
+            <div>
+              {Object.entries(selectedMpesaData).map(([key, value]) => (
+                <div key={key} className="mpesa-data-card">
+                  <div className="mpesa-data-label">{key.replace(/_/g, " ").toUpperCase()}</div>
+                  <div className="mpesa-data-value">
+                    {typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </tbody>
-      </Table>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseMpesa}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

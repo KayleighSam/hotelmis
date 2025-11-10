@@ -59,12 +59,13 @@ export const HotelProvider = ({ children }) => {
     room,
     client_name,
     client_email,
+    client_phone, // ✅ Added phone number field
     check_in,
     check_out,
     amount_paid,
     adults,
     children,
-    board_type, // ✅ NEW (Half Board / Full Board)
+    board_type, // ✅ Half Board / Full Board
   }) => {
     setLoading(true);
     setError(null);
@@ -73,6 +74,7 @@ export const HotelProvider = ({ children }) => {
         room,
         client_name,
         client_email,
+        client_phone, // ✅ Include phone in payload
         check_in,
         check_out,
         amount_paid,
